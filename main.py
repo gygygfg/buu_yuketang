@@ -447,12 +447,12 @@ def main():
                         print(f"点击后URL: {driver.current_url}")
                         print(f"点击后页面标题: {driver.title}")
                         
-                        # 尝试截屏记录
-                        try:
-                            driver.save_screenshot(f"chapter_{chapters_processed + 1}_clicked.png")
-                            print(f"已保存点击后截图: chapter_{chapters_processed + 1}_clicked.png")
-                        except:
-                            pass
+                        # 尝试截屏记录（已禁用）
+                        # try:
+                        #     driver.save_screenshot(f"chapter_{chapters_processed + 1}_clicked.png")
+                        #     print(f"已保存点击后截图: chapter_{chapters_processed + 1}_clicked.png")
+                        # except:
+                        #     pass
                         
                         # 视频播放和进度监控
                         print("\n=== 开始视频播放和进度监控 ===")
