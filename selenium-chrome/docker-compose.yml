@@ -1,0 +1,31 @@
+services:
+  selenium-chrome:
+    build: .
+    container_name: selenium-chrome-vnc
+    ports:
+      - "4444:4444"  # Selenium WebDriver
+      - "5900:5900"  # VNC
+      - "7900:7900"  # noVNC
+    environment:
+      - SE_SCREEN_WIDTH=1920
+      - SE_SCREEN_HEIGHT=1080
+      - SE_SCREEN_DEPTH=24
+      - SE_SCREEN_DPI=96
+      - SE_START_XVFB=true
+      - SE_START_VNC=true
+      - SE_START_NO_VNC=true
+      - SE_NO_VNC_PORT=7900
+      - SE_VNC_PORT=5900
+      - DISPLAY=:99.0
+      - DISPLAY_NUM=99
+      - VNC_PASSWORD=secret  # VNC 密码
+    volumes:
+      - /dev/shm:/dev/shm  # 共享内存，提高性能
+    shm_size: '2gb'  # 增加共享内存大小
+    restart: unless-stopped
+    networks:
+      - selenium-network
+
+networks:
+  selenium-network:
+    driver: bridge
