@@ -24,52 +24,52 @@
 ### 方法一：使用 Docker（推荐）
 
 1. **克隆项目**
-   ```bash
-   git clone <项目地址>
-   cd buu_yuketang
-   ```
+```bash
+git clone https://github.com/gygygfg/buu_yuketang.git
+cd buu_yuketang
+```
 
 2. **配置账号信息**
-   ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，填写您的雨课堂账号密码
-   ```
+```bash
+cp .env.example .env
+# 编辑 .env 文件，填写您的雨课堂账号密码
+```
 
 3. **启动 Selenium Chrome 容器**
-   ```bash
-   cd selenium-chrome
-   docker-compose up -d
-   ```
+```bash
+cd selenium-chrome
+docker-compose up -d
+```
 
 4. **运行自动化脚本**
-   ```bash
-   cd ..
-   python main.py
-   ```
+```bash
+cd ..
+python main.py
+```
 
 ### 方法二：本地运行
 
 1. **安装依赖**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+uv sync
+```
 
 2. **配置账号信息**
-   ```bash
-   cp .env.example .env
-   # 编辑 .env 文件，填写您的雨课堂账号密码
-   ```
+```bash
+cp .env.example .env
+# 编辑 .env 文件，填写您的雨课堂账号密码
+```
 
 3. **启动 Selenium Chrome**
-   ```bash
-   # 需要先安装并启动 Selenium Chrome 服务
-   # 或者使用 Docker 方式启动 Selenium
-   ```
+```bash
+# 需要先安装并启动 Selenium Chrome 服务
+# 或者使用 Docker 方式启动 Selenium
+```
 
 4. **运行自动化脚本**
-   ```bash
-   python main.py
-   ```
+```bash
+python main.py
+```
 
 ## ⚙️ 配置说明
 
@@ -106,12 +106,12 @@ COURSE_NAME = "创业:道与术(创新创业基础)"  # 要选择的课程名称
 ### 访问 VNC 远程桌面
 
 1. **使用 VNC 客户端**
-   - 地址：`localhost:5900`
-   - 密码：`secret`（可在 docker-compose.yml 中修改）
+- 地址：`localhost:5900`
+- 密码：`secret`（可在 docker-compose.yml 中修改）
 
 2. **使用 Web 浏览器**
-   - 地址：`http://localhost:7900`
-   - 密码：`secret`
+- 地址：`http://localhost:7900`
+- 密码：`secret`
 
 ### 容器管理命令
 

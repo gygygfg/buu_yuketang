@@ -28,7 +28,194 @@ else:
     PASSWORD = "您的密码"
 
 COURSE_NAME = "创业:道与术(创新创业基础)"  # 要选择的课程名称
+
+# 讨论区配置
+DISCUSSION_QUESTION = "如何理解创新与创业的关系？"
+DEEPSEEK_SUMMARY = "创新是创业的灵魂和核心驱动力，创业是创新的实践载体和价值实现途径。"
+MY_VIEWPOINT = "我认为创新与创业是相辅相成的关系。创新为创业提供核心竞争力，而创业则将创新转化为实际价值。没有创新的创业难以持续，没有创业的创新难以落地。"
 # =============================
+
+def handle_discussion_post(driver, wait):
+    """
+    处理讨论区发言功能
+    1. 获取问题
+    2. 请求deepseek简短的总结一句话
+    3. 设置文本区域
+    4. 点击发表
+    """
+    print("\n=== 开始处理讨论区发言 ===")
+    print(f"问题: {DISCUSSION_QUESTION}")
+    print(f"DeepSeek总结: {DEEPSEEK_SUMMARY}")
+    print(f"我的观点: {MY_VIEWPOINT}")
+    
+    try:
+        # 切换到主文档（确保不在iframe中）
+        try:
+            driver.switch_to.default_content()
+            print("已切换到主文档")
+        except Exception as e:
+            print(f"切换回主文档时出错: {e}")
+        
+        # 等待页面加载
+        time.sleep(3)
+        
+        # 查找讨论区文本输入框
+        print("正在查找讨论区文本输入框...")
+        
+        # 尝试多种选择器来查找文本输入框
+        textarea_selectors = [
+            "//textarea[@placeholder='发表你的观点...']",
+            "//textarea[contains(@class, 'el-textarea__inner')]",
+            "//textarea[@autocomplete='off']",
+            "//textarea",
+            "//div[contains(@class, 'comment-input')]//textarea",
+            "//div[contains(@class, 'discussion')]//textarea"
+        ]
+        
+        textarea = None
+        for selector in textarea_selectors:
+            try:
+                elements = driver.find_elements(By.XPATH, selector)
+                if elements:
+                    textarea = elements[0]
+                    print(f"找到文本输入框 (使用选择器: {selector})")
+                    break
+            except Exception as e:
+                continue
+        
+        if not textarea:
+            print("警告: 未找到文本输入框，尝试其他方法...")
+            
+            # 尝试查找可编辑的div
+            try:
+                editable_divs = driver.find_elements(By.XPATH, "//div[@contenteditable='true']")
+                if editable_divs:
+                    textarea = editable_divs[0]
+                    print("找到可编辑的div作为文本输入框")
+            except Exception as e:
+                print(f"查找可编辑div时出错: {e}")
+        
+        if textarea:
+            # 清空并输入内容
+            try:
+                textarea.clear()
+                print("已清空文本输入框")
+            except:
+                pass
+            
+            # 输入内容（结合DeepSeek总结和我的观点）
+            full_content = f"{DEEPSEEK_SUMMARY}\n\n{MY_VIEWPOINT}"
+            
+            try:
+                textarea.send_keys(full_content)
+                print(f"已输入内容 (长度: {len(full_content)} 字符)")
+                time.sleep(2)
+            except Exception as e:
+                print(f"输入内容时出错: {e}")
+                # 尝试使用JavaScript设置值
+                try:
+                    driver.execute_script("arguments[0].value = arguments[1];", textarea, full_content)
+                    print("已使用JavaScript设置内容")
+                    time.sleep(2)
+                except Exception as js_e:
+                    print(f"JavaScript设置内容也失败: {js_e}")
+            
+            # 查找并点击发送按钮
+            print("正在查找发送按钮...")
+            
+            button_selectors = [
+                "//button[contains(@class, 'submitComment') and contains(@class, 'el-button--primary')]",
+                "//button[contains(@class, 'submitComment')]",
+                "//button[contains(text(), '发送')]",
+                "//button[contains(text(), '发表')]",
+                "//button[contains(@class, 'el-button--primary') and span[contains(text(), '发送')]]",
+                "//button[@type='button' and contains(@class, 'el-button--primary')]"
+            ]
+            
+            submit_button = None
+            for selector in button_selectors:
+                try:
+                    elements = driver.find_elements(By.XPATH, selector)
+                    if elements:
+                        submit_button = elements[0]
+                        print(f"找到发送按钮 (使用选择器: {selector})")
+                        break
+                except Exception as e:
+                    continue
+            
+            if submit_button:
+                try:
+                    submit_button.click()
+                    print("已点击发送按钮")
+                    time.sleep(3)
+                    
+                    # 检查是否发送成功
+                    print("检查是否发送成功...")
+                    
+                    # 查找成功提示或新发表的评论
+                    try:
+                        success_elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'el-message') or contains(@class, 'success') or contains(text(), '成功') or contains(text(), '发表')]")
+                        if success_elements:
+                            for elem in success_elements[:3]:
+                                text = elem.text.strip()
+                                if text:
+                                    print(f"页面提示: {text[:100]}")
+                    except:
+                        pass
+                    
+                    print("✓ 讨论区发言处理完成")
+                    return True
+                    
+                except Exception as e:
+                    print(f"点击发送按钮时出错: {e}")
+                    # 尝试使用JavaScript点击
+                    try:
+                        driver.execute_script("arguments[0].click();", submit_button)
+                        print("已使用JavaScript点击发送按钮")
+                        time.sleep(3)
+                        print("✓ 讨论区发言处理完成 (通过JavaScript)")
+                        return True
+                    except Exception as js_e:
+                        print(f"JavaScript点击也失败: {js_e}")
+            else:
+                print("错误: 未找到发送按钮")
+                
+                # 列出所有按钮供调试
+                try:
+                    all_buttons = driver.find_elements(By.TAG_NAME, "button")
+                    print(f"页面上的按钮数量: {len(all_buttons)}")
+                    for i, btn in enumerate(all_buttons[:10]):
+                        text = btn.text.strip()
+                        if text:
+                            print(f"  按钮 {i+1}: {text[:50]}")
+                except:
+                    pass
+        else:
+            print("错误: 未找到文本输入框")
+            
+            # 截屏以便调试
+            try:
+                driver.save_screenshot("discussion_debug.png")
+                print("已保存讨论区页面截图: discussion_debug.png")
+            except:
+                pass
+            
+            # 打印页面结构帮助调试
+            try:
+                body_html = driver.find_element(By.TAG_NAME, "body").get_attribute("outerHTML")
+                if body_html:
+                    print("页面body的前500个字符:")
+                    print(body_html[:500] + "...")
+            except:
+                pass
+        
+        return False
+        
+    except Exception as e:
+        print(f"处理讨论区发言时出错: {e}")
+        traceback.print_exc()
+        return False
+
 
 def main():
     driver = None
@@ -107,7 +294,7 @@ def main():
                 mobile_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='mobile' and @name='loginname']")))
                 mobile_input.clear()
                 mobile_input.send_keys(MOBILE_NUMBER)
-                print(f"已输入手机号: {MOBILE_NUMBER}")
+                print(f"已输入手机号")
                 time.sleep(1)
             except TimeoutException:
                 print("错误: 未找到手机号输入框")
@@ -220,12 +407,12 @@ def main():
             else:
                 print(f"错误: 未找到课程: {course_name}")
                 # 列出所有可见的课程
-                print("当前页面可见的课程:")
-                all_texts = driver.find_elements(By.XPATH, "//h1 | //div[contains(@class, 'lesson-cardS')]//h1")
-                for text_elem in all_texts:
-                    if text_elem.text.strip():
-                        print(f"  - {text_elem.text.strip()}")
-                raise NoSuchElementException(f"课程 '{course_name}' 未找到")
+                # print("当前页面可见的课程:")
+                # all_texts = driver.find_elements(By.XPATH, "//h1 | //div[contains(@class, 'lesson-cardS')]//h1")
+                # for text_elem in all_texts:
+                #     if text_elem.text.strip():
+                #         print(f"  - {text_elem.text.strip()}")
+                # raise NoSuchElementException(f"课程 '{course_name}' 未找到")
         except Exception as e:
             print(f"选择课程时出错: {e}")
             traceback.print_exc()
@@ -252,10 +439,10 @@ def main():
                 print(f"尝试其他方式查找学习内容标签失败: {e}")
         
         # 主循环：处理所有未完成章节
-        max_chapters_to_process = 20  # 最多处理20个章节，防止无限循环
         chapters_processed = 0
+        no_chapter_retry_count = 0  # 专门用于记录未找到章节项的重试次数
         
-        while chapters_processed < max_chapters_to_process:
+        while True:  # 无限循环，直到没有未完成章节为止
             print(f"\n{'='*60}")
             print(f"开始查找未完成的章节 (第 {chapters_processed + 1} 轮)...")
             print(f"{'='*60}")
@@ -354,19 +541,24 @@ def main():
                         progress_element = item.find_element(By.XPATH, ".//div[contains(@class, 'progress-wrap')]")
                         progress_text = progress_element.text.strip()
                         
-                        print(f"\n章节 {i+1}: {title}")
-                        print(f"进度状态: {progress_text}")
+                        # print(f"\n章节 {i+1}: {title}")
+                        # print(f"进度状态: {progress_text}")
                         
                         # 判断是否未完成
                         is_unfinished = False
                         reason = ""
                         
+                        # 调试：打印原始进度文本
+                        # print(f"原始进度文本: '{progress_text}'")
+                        
                         if "未开始" in progress_text:
                             is_unfinished = True
                             reason = "未开始"
+                            print(f"状态判断: 未开始 -> 未完成")
                         elif "未发言" in progress_text:
                             is_unfinished = True
                             reason = "未发言"
+                            print(f"状态判断: 未发言 -> 未完成")
                         elif "%" in progress_text:
                             # 提取百分比数字
                             import re
@@ -376,9 +568,23 @@ def main():
                                 if percent < 100:
                                     is_unfinished = True
                                     reason = f"进度{percent}%"
-                        elif "已完成" not in progress_text and progress_text:
+                                    print(f"状态判断: 进度{percent}% -> 未完成")
+                                else:
+                                    # print(f"状态判断: 进度{percent}% -> 已完成")
+                                    pass
+                        elif "已完成" in progress_text:
+                            # print(f"状态判断: 包含'已完成' -> 已完成")
+                            pass
+                        elif "已发言" in progress_text:
+                            # print(f"状态判断: 包含'已发言' -> 已完成")
+                            pass
+                        elif progress_text:
+                            # 其他非空状态
                             is_unfinished = True
                             reason = f"其他状态: {progress_text}"
+                            print(f"状态判断: 其他状态 '{progress_text}' -> 未完成")
+                        else:
+                            print(f"状态判断: 空状态或未知状态")
                         
                         if is_unfinished:
                             print(f"✓ 发现未完成章节: {title} ({reason})")
@@ -388,7 +594,8 @@ def main():
                                 unfinished_reason = reason
                                 break
                         else:
-                            print(f"  ✓ 已完成: {title}")
+                            # print(f"  ✓ 已完成: {title}")
+                            pass
                             
                     except Exception as item_e:
                         print(f"处理章节 {i+1} 时出错: {item_e}")
@@ -409,7 +616,125 @@ def main():
                     print(f"章节标题: {unfinished_title}")
                     print(f"未完成原因: {unfinished_reason}")
                     
-                    # 尝试点击该章节
+                    # 特殊处理：如果是"未发言"状态，先处理讨论区发言
+                    if "未发言" in unfinished_reason:
+                        print("\n=== 检测到'未发言'状态，先处理讨论区发言 ===")
+                        
+                        # 点击进入该章节
+                        try:
+                            print("正在点击章节进入讨论区...")
+                            
+                            # 如果我们在iframe内部找到的章节项，确保在iframe内部点击
+                            if in_iframe:
+                                print("在iframe内部点击章节项")
+                            else:
+                                # 如果不在iframe内部，尝试切换到iframe
+                                try:
+                                    iframe_elements = driver.find_elements(By.XPATH, "//iframe[contains(@class, 'tab-pane-content-iframe')]")
+                                    if iframe_elements:
+                                        iframe = iframe_elements[0]
+                                        driver.switch_to.frame(iframe)
+                                        in_iframe = True
+                                        print("已切换到iframe内部点击章节")
+                                except Exception as iframe_e:
+                                    print(f"切换到iframe时出错: {iframe_e}")
+                            
+                            # 先尝试正常点击
+                            try:
+                                unfinished_item.click()
+                                print("已正常点击章节")
+                            except Exception as click_e:
+                                print(f"正常点击失败: {click_e}")
+                                print("尝试使用JavaScript点击...")
+                                
+                                # 使用JavaScript点击
+                                driver.execute_script("arguments[0].click();", unfinished_item)
+                                print("已使用JavaScript点击章节")
+                            
+                            # 等待页面加载讨论区
+                            time.sleep(5)
+                            
+                            # 处理讨论区发言
+                            discussion_success = handle_discussion_post(driver, wait)
+                            
+                            if discussion_success:
+                                print("✓ 讨论区发言处理成功，返回继续处理其他章节")
+                                
+                                # 返回课程选择页面
+                                print("返回课程选择页面...")
+                                try:
+                                    # 首先切换回主文档
+                                    try:
+                                        driver.switch_to.default_content()
+                                        print("已切换回主文档")
+                                    except Exception as switch_e:
+                                        print(f"切换回主文档时出错: {switch_e}")
+                                    
+                                    # 尝试点击返回按钮或后退
+                                    back_buttons = driver.find_elements(By.XPATH, "//button[contains(text(), '返回') or contains(text(), 'Back') or contains(@class, 'back')]")
+                                    if back_buttons:
+                                        back_buttons[0].click()
+                                        print("已点击返回按钮")
+                                    else:
+                                        # 使用浏览器后退
+                                        driver.back()
+                                        print("已使用浏览器后退")
+                                    
+                                    time.sleep(5)
+                                    print(f"返回后URL: {driver.current_url}")
+                                    
+                                    # 返回后需要重新点击"学习内容"标签
+                                    print("返回后重新点击'学习内容'标签...")
+                                    try:
+                                        content_tab = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[@id='tab-content' and contains(@class, 'el-tabs__item') and text()='学习内容']")))
+                                        content_tab.click()
+                                        print("已重新点击'学习内容'标签")
+                                        time.sleep(3)
+                                    except TimeoutException:
+                                        print("错误: 返回后未找到'学习内容'标签")
+                                        # 尝试其他方式查找
+                                        try:
+                                            tabs = driver.find_elements(By.XPATH, "//div[contains(@class, 'el-tabs__item') and contains(text(), '学习内容')]")
+                                            if tabs:
+                                                tabs[0].click()
+                                                print("已通过文本匹配重新点击'学习内容'标签")
+                                                time.sleep(3)
+                                            else:
+                                                print("未找到任何包含'学习内容'文本的标签")
+                                        except Exception as e:
+                                            print(f"尝试重新点击学习内容标签失败: {e}")
+                                    
+                                    # 增加已处理章节计数
+                                    chapters_processed += 1
+                                    print(f"已成功处理 {chapters_processed} 个章节")
+                                    
+                                    # 重置重试计数器，因为成功处理了一个章节
+                                    no_chapter_retry_count = 0
+                                    
+                                    # 继续循环处理下一个章节
+                                    continue
+                                    
+                                except Exception as back_error:
+                                    print(f"返回时出错: {back_error}")
+                                    # 即使返回失败，也增加计数并继续
+                                    chapters_processed += 1
+                                    # 重置重试计数器
+                                    no_chapter_retry_count = 0
+                                    continue
+                            else:
+                                print("警告: 讨论区发言处理失败，继续尝试其他方式")
+                                
+                        except Exception as discussion_error:
+                            print(f"处理讨论区发言章节时出错: {discussion_error}")
+                            traceback.print_exc()
+                            # 即使出错也增加计数，避免卡在同一个章节
+                            chapters_processed += 1
+                            print(f"处理出错，计数增加到 {chapters_processed}")
+                            # 重置重试计数器
+                            no_chapter_retry_count = 0
+                            continue
+                    
+                    # 尝试点击该章节（非"未发言"状态的处理）
                     try:
                         print("正在点击章节...")
                         
@@ -663,6 +988,9 @@ def main():
                                     chapters_processed += 1
                                     print(f"已成功处理 {chapters_processed} 个章节")
                                     
+                                    # 重置重试计数器，因为成功处理了一个章节
+                                    no_chapter_retry_count = 0
+                                    
                                     # 继续循环处理下一个章节
                                     continue
                                     
@@ -670,6 +998,8 @@ def main():
                                     print(f"返回时出错: {back_error}")
                                     # 即使返回失败，也增加计数并继续
                                     chapters_processed += 1
+                                    # 重置重试计数器
+                                    no_chapter_retry_count = 0
                                     continue
                             else:
                                 print(f"\n警告: 在 {max_wait_time} 秒内未检测到视频完成")
@@ -683,6 +1013,8 @@ def main():
                         if not progress_completed:
                             chapters_processed += 1
                             print(f"视频未完成，但已尝试处理，计数增加到 {chapters_processed}")
+                            # 重置重试计数器
+                            no_chapter_retry_count = 0
                         
                     except Exception as click_error:
                         print(f"点击章节时出错: {click_error}")
@@ -690,6 +1022,8 @@ def main():
                         # 即使出错也增加计数，避免卡在同一个章节
                         chapters_processed += 1
                         print(f"处理出错，计数增加到 {chapters_processed}")
+                        # 重置重试计数器
+                        no_chapter_retry_count = 0
                 else:
                     print("\n=== 未找到未完成章节 ===")
                     print("所有章节似乎都已完成")
@@ -733,7 +1067,7 @@ def main():
                         pass
                 
                 # 打印页面结构帮助调试
-                print("\n当前页面body的前500个字符:")
+                # print("\n当前页面body的前500个字符:")
                 try:
                     body_html = driver.find_element(By.TAG_NAME, "body").get_attribute("outerHTML")
                     if body_html:
@@ -743,9 +1077,16 @@ def main():
                 except:
                     pass
                 
-                # 未找到章节项，增加计数并继续
-                chapters_processed += 1
-                print(f"未找到章节项，计数增加到 {chapters_processed}")
+                # 未找到章节项，增加重试计数
+                no_chapter_retry_count += 1
+                print(f"未找到章节项，重试计数: {no_chapter_retry_count}")
+                
+                # 如果多次重试后仍然找不到章节项，可能页面有问题，停止处理
+                if no_chapter_retry_count >= 5:  # 最多重试5次
+                    print(f"\n{'='*60}")
+                    print(f"多次重试后仍未找到章节项，停止处理")
+                    print(f"{'='*60}")
+                    break
                 
                 # 尝试刷新页面
                 try:
@@ -754,10 +1095,11 @@ def main():
                 except:
                     pass
             
-            # 检查是否达到最大处理次数
-            if chapters_processed >= max_chapters_to_process:
+            # 检查是否达到最大处理次数（安全限制，防止无限循环）
+            max_safe_limit = 100  # 安全上限，防止意外无限循环
+            if chapters_processed >= max_safe_limit:
                 print(f"\n{'='*60}")
-                print(f"已达到最大处理次数 ({max_chapters_to_process})，停止处理")
+                print(f"已达到安全上限 ({max_safe_limit})，停止处理")
                 print(f"{'='*60}")
                 break
         
